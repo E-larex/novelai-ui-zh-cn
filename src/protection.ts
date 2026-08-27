@@ -19,6 +19,12 @@ const PROMPT_CHUNKS_CONTROL_LABELS = [
   "全部删除",
 ];
 
+const CHARACTER_GENDER_LABELS = {
+  female: new Set(["Female", "女性"]),
+  male: new Set(["Male", "男性"]),
+  other: new Set(["Other", "其他"]),
+};
+
 const allowedComboboxLabels = new Set([
   "Select the Model",
   "Quality Preset",
@@ -48,6 +54,37 @@ function isPromptChunksTabBar(element: Element): boolean {
     labels.some((label) => PROMPT_CHUNKS_TAB_LABELS.chunks.has(label)) &&
     labels.some((label) => PROMPT_CHUNKS_TAB_LABELS.settings.has(label))
   );
+}
+
+function looksLikeCharacterGenderMenu(element: Element): boolean {
+  if (element === element.ownerDocument.body || element === element.ownerDocument.documentElement) {
+    return false;
+  }
+  const descendants = Array.from(element.querySelectorAll("*"));
+  if (descendants.length > 15) {
+    return false;
+  }
+  const labels = descendants
+    .filter((child) => child.children.length === 0)
+    .map((child) => child.textContent?.trim() ?? "");
+  const nonemptyLabels = labels.filter(Boolean);
+  return (
+    nonemptyLabels.length === 3 &&
+    labels.some((label) => CHARACTER_GENDER_LABELS.female.has(label)) &&
+    labels.some((label) => CHARACTER_GENDER_LABELS.male.has(label)) &&
+    labels.some((label) => CHARACTER_GENDER_LABELS.other.has(label))
+  );
+}
+
+export function isCharacterGenderOption(node: Text): boolean {
+  let current = node.parentElement;
+  for (let depth = 0; current && depth < 5; depth += 1) {
+    if (looksLikeCharacterGenderMenu(current)) {
+      return true;
+    }
+    current = current.parentElement;
+  }
+  return false;
 }
 
 function looksLikePromptChunksPanel(element: Element): boolean {
@@ -207,7 +244,7 @@ export function shouldSkipElement(element: Element): boolean {
 }
 
 export function canTranslateAttribute(element: Element, name: string): boolean {
-  if (name !== "aria-label" && name !== "title") {
+  if (name !== "aria-label" && name !== "placeholder" && name !== "title") {
     return false;
   }
   if (element instanceof HTMLImageElement || isInsidePromptEditor(element)) {

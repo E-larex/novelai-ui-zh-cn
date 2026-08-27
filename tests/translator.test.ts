@@ -40,7 +40,9 @@ describe("UiTranslator", () => {
   it("translates only allowlisted attributes and never changes values or image metadata", () => {
     document.body.innerHTML = `
       <button id="history" aria-label="collapse History" title="Swap width and height"></button>
+      <button id="reset" aria-label="reset settings"></button>
       <input id="model-select" role="combobox" aria-label="Select the Model" value="Model">
+      <input id="seed" placeholder="Enter a seed" value="123">
       <img id="result" alt="Model" title="Model" data-prompt="Model">
     `;
 
@@ -48,8 +50,11 @@ describe("UiTranslator", () => {
 
     expect(document.querySelector("#history")?.getAttribute("aria-label")).toBe("收起历史记录");
     expect(document.querySelector("#history")?.getAttribute("title")).toBe("交换宽度和高度");
+    expect(document.querySelector("#reset")?.getAttribute("aria-label")).toBe("重置设置");
     expect(document.querySelector("#model-select")?.getAttribute("aria-label")).toBe("选择模型");
     expect((document.querySelector("#model-select") as HTMLInputElement).value).toBe("Model");
+    expect(document.querySelector("#seed")?.getAttribute("placeholder")).toBe("输入种子");
+    expect((document.querySelector("#seed") as HTMLInputElement).value).toBe("123");
     expect(document.querySelector("#result")?.getAttribute("alt")).toBe("Model");
     expect(document.querySelector("#result")?.getAttribute("title")).toBe("Model");
     expect(document.querySelector("#result")?.getAttribute("data-prompt")).toBe("Model");
@@ -178,6 +183,48 @@ describe("UiTranslator", () => {
     expect(document.querySelectorAll("label")[0]?.textContent).toBe("禁用标签建议");
     expect(document.querySelectorAll("label")[1]?.textContent).toBe("高亮强调语法");
     expect(document.querySelector("p")?.textContent).toBe("Custom prompt chunk content");
+  });
+
+  it("translates character gender options only inside the gender menu", () => {
+    document.body.innerHTML = `
+      <div class="gender-menu">
+        <div>Female</div>
+        <div>Male</div>
+        <div>Other</div>
+      </div>
+      <div id="global-menu">Other</div>
+    `;
+
+    translator.translateSubtree(document.body);
+
+    expect(document.querySelector(".gender-menu")?.textContent?.replace(/\s+/g, "")).toBe(
+      "女性男性其他",
+    );
+    expect(document.querySelector("#global-menu")?.textContent).toBe("Other");
+  });
+
+  it("translates advanced settings, tooltips, and dynamic token usage", () => {
+    document.body.innerHTML = `
+      <div>AI Settings</div>
+      <div>Prompt Guidance</div>
+      <div>Advanced Settings</div>
+      <div>Prompt Guidance Rescale</div>
+      <p>Add Character</p>
+      <p>Randomize</p>
+      <p id="tokens">This prompt is using 57 of the currently used\n0 tokens. Max total tokens: 703</p>
+    `;
+
+    translator.translateSubtree(document.body);
+
+    expect(document.body.textContent).toContain("AI 设置");
+    expect(document.body.textContent).toContain("提示词引导");
+    expect(document.body.textContent).toContain("高级设置");
+    expect(document.body.textContent).toContain("提示词引导重缩放");
+    expect(document.body.textContent).toContain("添加角色");
+    expect(document.body.textContent).toContain("随机化");
+    expect(document.querySelector("#tokens")?.textContent).toBe(
+      "此提示词使用 57 个 token；当前已使用 0 个。token 总上限：703",
+    );
   });
 
   it("translates dynamically added tooltips and notifications once", async () => {

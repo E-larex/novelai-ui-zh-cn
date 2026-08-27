@@ -9,6 +9,12 @@ const text = entries([
   ["Furry", "兽人"],
   ["Prompt", "提示词"],
   ["Prompt Chunks", "提示词片段"],
+  ["Add Character", "添加角色"],
+  ["AI Settings", "AI 设置"],
+  ["Prompt Guidance", "提示词引导"],
+  ["Advanced Settings", "高级设置"],
+  ["Prompt Guidance Rescale", "提示词引导重缩放"],
+  ["Randomize", "随机化"],
   ["Transparent BG", "透明背景"],
   ["Undesired Content", "不希望出现的内容"],
   ["Character Prompts", "角色提示词"],
@@ -97,6 +103,12 @@ const historyText = entries([
   ["Deselect All", "取消全选"],
 ] as const);
 
+const characterGenderText = entries([
+  ["Female", "女性"],
+  ["Male", "男性"],
+  ["Other", "其他"],
+] as const);
+
 const promptChunksText = entries([
   ["Prompt Chunks", "提示词片段"],
   ["Settings", "设置"],
@@ -144,6 +156,8 @@ const attributes = entries([
   ["Add Prompt Chunk", "添加提示词片段"],
   ["Disable Tag Suggestions", "禁用标签建议"],
   ["Highlight Emphasis", "高亮强调语法"],
+  ["Enter a seed", "输入种子"],
+  ["reset settings", "重置设置"],
   ["choose image", "选择图像"],
   ["lock history scrolling", "锁定历史记录滚动"],
   ["unlock history scrolling", "解锁历史记录滚动"],
@@ -161,6 +175,12 @@ const attributes = entries([
 ] as const);
 
 const dynamicText: readonly DynamicTranslation[] = [
+  {
+    pattern:
+      /^This prompt is using (\d+) of the currently used\s+(\d+) tokens\. Max total tokens: (\d+)$/,
+    translate: (match) =>
+      `此提示词使用 ${match[1]} 个 token；当前已使用 ${match[2]} 个。token 总上限：${match[3]}`,
+  },
   {
     pattern: /^Generate (\d+) Image$/,
     translate: (match) => `生成 ${match[1]} 张图像`,
@@ -186,6 +206,7 @@ export const catalog: TranslationCatalog = {
   text,
   resultText,
   historyText,
+  characterGenderText,
   promptChunksText,
   promptPreviewText,
   selectText,

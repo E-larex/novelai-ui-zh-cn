@@ -1,5 +1,6 @@
 import {
   canTranslateAttribute,
+  isCharacterGenderOption,
   isAllowedSelectText,
   isInsideHistory,
   isInsidePromptChunksPanel,
@@ -12,7 +13,11 @@ import {
 import { catalog as defaultCatalog } from "./translations";
 import type { DynamicTranslation, TranslatableAttribute, TranslationCatalog } from "./types";
 
-const translatableAttributes: readonly TranslatableAttribute[] = ["aria-label", "title"];
+const translatableAttributes: readonly TranslatableAttribute[] = [
+  "aria-label",
+  "placeholder",
+  "title",
+];
 
 function preserveWhitespace(original: string, translated: string): string {
   const leading = original.match(/^\s*/)?.[0] ?? "";
@@ -120,7 +125,9 @@ export class UiTranslator {
     }
 
     let translated: string | undefined;
-    if (isInsidePromptChunksPanel(node)) {
+    if (isCharacterGenderOption(node)) {
+      translated = this.catalog.characterGenderText.get(source);
+    } else if (isInsidePromptChunksPanel(node)) {
       translated = isPromptChunksChromeText(node, source)
         ? this.catalog.promptChunksText.get(source)
         : undefined;

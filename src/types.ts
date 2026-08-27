@@ -1,4 +1,4 @@
-export type TranslatableAttribute = "aria-label" | "title";
+export type TranslatableAttribute = "aria-label" | "placeholder" | "title";
 
 export interface DynamicTranslation {
   readonly pattern: RegExp;
@@ -9,6 +9,7 @@ export interface TranslationCatalog {
   readonly text: ReadonlyMap<string, string>;
   readonly resultText: ReadonlyMap<string, string>;
   readonly historyText: ReadonlyMap<string, string>;
+  readonly characterGenderText: ReadonlyMap<string, string>;
   readonly promptChunksText: ReadonlyMap<string, string>;
   readonly promptPreviewText: ReadonlyMap<string, string>;
   readonly selectText: ReadonlyMap<string, string>;

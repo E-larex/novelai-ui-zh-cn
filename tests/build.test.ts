@@ -8,7 +8,7 @@ const userscript = readFileSync(resolve(process.cwd(), "dist/novelai-ui-zh-cn.us
 describe("userscript build", () => {
   it("contains install and update metadata", () => {
     expect(userscript).toContain("// ==UserScript==");
-    expect(userscript).toContain("// @version      0.1.1");
+    expect(userscript).toContain("// @version      0.1.2");
     expect(userscript).toContain("// @match        https://novelai.net/image*");
     expect(userscript).toContain("// @grant        none");
     expect(userscript).toContain(

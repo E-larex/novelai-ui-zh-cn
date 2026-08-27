@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NovelAI 图像界面简体中文
 // @namespace    https://github.com/E-larex/novelai-ui-zh-cn
-// @version      0.1.1
+// @version      0.1.2
 // @description  将 NovelAI 图像生成界面的固定文案翻译为简体中文，绝不修改提示词。
 // @author       E-larex
 // @license      MIT
@@ -35,6 +35,11 @@
     "Delete All",
     "全部删除"
   ];
+  var CHARACTER_GENDER_LABELS = {
+    female: /* @__PURE__ */ new Set(["Female", "女性"]),
+    male: /* @__PURE__ */ new Set(["Male", "男性"]),
+    other: /* @__PURE__ */ new Set(["Other", "其他"])
+  };
   var allowedComboboxLabels = /* @__PURE__ */ new Set([
     "Select the Model",
     "Quality Preset",
@@ -57,6 +62,28 @@
     }
     const labels = Array.from(element.children).map((child) => child.textContent?.trim() ?? "");
     return labels.some((label) => PROMPT_CHUNKS_TAB_LABELS.chunks.has(label)) && labels.some((label) => PROMPT_CHUNKS_TAB_LABELS.settings.has(label));
+  }
+  function looksLikeCharacterGenderMenu(element) {
+    if (element === element.ownerDocument.body || element === element.ownerDocument.documentElement) {
+      return false;
+    }
+    const descendants = Array.from(element.querySelectorAll("*"));
+    if (descendants.length > 15) {
+      return false;
+    }
+    const labels = descendants.filter((child) => child.children.length === 0).map((child) => child.textContent?.trim() ?? "");
+    const nonemptyLabels = labels.filter(Boolean);
+    return nonemptyLabels.length === 3 && labels.some((label) => CHARACTER_GENDER_LABELS.female.has(label)) && labels.some((label) => CHARACTER_GENDER_LABELS.male.has(label)) && labels.some((label) => CHARACTER_GENDER_LABELS.other.has(label));
+  }
+  function isCharacterGenderOption(node) {
+    let current = node.parentElement;
+    for (let depth = 0; current && depth < 5; depth += 1) {
+      if (looksLikeCharacterGenderMenu(current)) {
+        return true;
+      }
+      current = current.parentElement;
+    }
+    return false;
   }
   function looksLikePromptChunksPanel(element) {
     const hasTabBar = Array.from(element.querySelectorAll("div")).some(isPromptChunksTabBar);
@@ -181,7 +208,7 @@
     return element.matches("script, style, noscript, template") || isPromptEditorElement(element);
   }
   function canTranslateAttribute(element, name) {
-    if (name !== "aria-label" && name !== "title") {
+    if (name !== "aria-label" && name !== "placeholder" && name !== "title") {
       return false;
     }
     if (element instanceof HTMLImageElement || isInsidePromptEditor(element)) {
@@ -199,6 +226,12 @@
     ["Furry", "兽人"],
     ["Prompt", "提示词"],
     ["Prompt Chunks", "提示词片段"],
+    ["Add Character", "添加角色"],
+    ["AI Settings", "AI 设置"],
+    ["Prompt Guidance", "提示词引导"],
+    ["Advanced Settings", "高级设置"],
+    ["Prompt Guidance Rescale", "提示词引导重缩放"],
+    ["Randomize", "随机化"],
     ["Transparent BG", "透明背景"],
     ["Undesired Content", "不希望出现的内容"],
     ["Character Prompts", "角色提示词"],
@@ -284,6 +317,11 @@
     ["Select All", "全选"],
     ["Deselect All", "取消全选"]
   ]);
+  var characterGenderText = entries([
+    ["Female", "女性"],
+    ["Male", "男性"],
+    ["Other", "其他"]
+  ]);
   var promptChunksText = entries([
     ["Prompt Chunks", "提示词片段"],
     ["Settings", "设置"],
@@ -328,6 +366,8 @@
     ["Add Prompt Chunk", "添加提示词片段"],
     ["Disable Tag Suggestions", "禁用标签建议"],
     ["Highlight Emphasis", "高亮强调语法"],
+    ["Enter a seed", "输入种子"],
+    ["reset settings", "重置设置"],
     ["choose image", "选择图像"],
     ["lock history scrolling", "锁定历史记录滚动"],
     ["unlock history scrolling", "解锁历史记录滚动"],
@@ -344,6 +384,10 @@
     ]
   ]);
   var dynamicText = [
+    {
+      pattern: /^This prompt is using (\d+) of the currently used\s+(\d+) tokens\. Max total tokens: (\d+)$/,
+      translate: (match) => `此提示词使用 ${match[1]} 个 token；当前已使用 ${match[2]} 个。token 总上限：${match[3]}`
+    },
     {
       pattern: /^Generate (\d+) Image$/,
       translate: (match) => `生成 ${match[1]} 张图像`
@@ -367,6 +411,7 @@
     text,
     resultText,
     historyText,
+    characterGenderText,
     promptChunksText,
     promptPreviewText,
     selectText,
@@ -376,7 +421,11 @@
   };
 
   // src/translator.ts
-  var translatableAttributes = ["aria-label", "title"];
+  var translatableAttributes = [
+    "aria-label",
+    "placeholder",
+    "title"
+  ];
   function preserveWhitespace(original, translated) {
     const leading = original.match(/^\s*/)?.[0] ?? "";
     const trailing = original.match(/\s*$/)?.[0] ?? "";
@@ -467,7 +516,9 @@
         return;
       }
       let translated;
-      if (isInsidePromptChunksPanel(node)) {
+      if (isCharacterGenderOption(node)) {
+        translated = this.catalog.characterGenderText.get(source);
+      } else if (isInsidePromptChunksPanel(node)) {
         translated = isPromptChunksChromeText(node, source) ? this.catalog.promptChunksText.get(source) : void 0;
       } else if (isPromptPreviewText(node)) {
         translated = this.catalog.promptPreviewText.get(source);
