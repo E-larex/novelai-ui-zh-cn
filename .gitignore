@@ -1,0 +1,13 @@
+node_modules/
+coverage/
+.cache/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+.idea/
+.vscode/
+*.tsbuildinfo
+
+# dist/ 中的正式用户脚本需要提交，以支持 Raw main 自动更新。
