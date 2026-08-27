@@ -3,6 +3,22 @@ const PROMPT_PREVIEW_MARKERS = new Set([
   "Added to the beginning of the UC:",
 ]);
 
+const PROMPT_CHUNKS_TAB_LABELS = {
+  chunks: new Set(["Prompt Chunks", "提示词片段"]),
+  settings: new Set(["Settings", "设置"]),
+};
+
+const PROMPT_CHUNKS_CONTROL_LABELS = [
+  "Add Prompt Chunk",
+  "添加提示词片段",
+  "Disable Tag Suggestions",
+  "禁用标签建议",
+  "Highlight Emphasis",
+  "高亮强调语法",
+  "Delete All",
+  "全部删除",
+];
+
 const allowedComboboxLabels = new Set([
   "Select the Model",
   "Quality Preset",
@@ -21,6 +37,84 @@ const PROMPT_CLASS_PATTERN =
 
 function classNames(element: Element): string[] {
   return typeof element.className === "string" ? element.className.split(/\s+/) : [];
+}
+
+function isPromptChunksTabBar(element: Element): boolean {
+  if (element.children.length !== 2) {
+    return false;
+  }
+  const labels = Array.from(element.children).map((child) => child.textContent?.trim() ?? "");
+  return (
+    labels.some((label) => PROMPT_CHUNKS_TAB_LABELS.chunks.has(label)) &&
+    labels.some((label) => PROMPT_CHUNKS_TAB_LABELS.settings.has(label))
+  );
+}
+
+function looksLikePromptChunksPanel(element: Element): boolean {
+  const hasTabBar = Array.from(element.querySelectorAll("div")).some(isPromptChunksTabBar);
+  if (!hasTabBar) {
+    return false;
+  }
+
+  const hasControl = PROMPT_CHUNKS_CONTROL_LABELS.some(
+    (label) =>
+      element.querySelector(`[aria-label="${label}"]`) ||
+      Array.from(element.querySelectorAll("button")).some(
+        (button) => button.textContent?.trim() === label,
+      ),
+  );
+  return Boolean(hasControl);
+}
+
+function promptChunksPanel(node: Node): Element | null {
+  let current = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+  while (current) {
+    if (looksLikePromptChunksPanel(current)) {
+      return current;
+    }
+    current = current.parentElement;
+  }
+  return null;
+}
+
+export function isInsidePromptChunksPanel(node: Node): boolean {
+  return Boolean(promptChunksPanel(node));
+}
+
+export function isPromptChunksChromeText(node: Text, source: string): boolean {
+  const parent = node.parentElement;
+  const panel = promptChunksPanel(node);
+  if (!parent) {
+    return false;
+  }
+
+  if (source === "No custom prompt chunks yet. Click + to add one.") {
+    return true;
+  }
+  if (source === "Delete All") {
+    return parent.closest("button") !== null;
+  }
+  if (source === "Disable Tag Suggestions" || source === "Highlight Emphasis") {
+    return Boolean(parent.closest("label")?.querySelector('input[type="checkbox"]'));
+  }
+  if (source === "Settings" || source === "Prompt Chunks") {
+    if (parent.parentElement && isPromptChunksTabBar(parent.parentElement)) {
+      return true;
+    }
+    if (source === "Prompt Chunks") {
+      if (!panel) {
+        return false;
+      }
+      const headings = Array.from(panel.querySelectorAll("*"))
+        .filter((element) => PROMPT_CHUNKS_TAB_LABELS.chunks.has(element.textContent?.trim() ?? ""))
+        .filter((element) => element.children.length === 0)
+        .filter(
+          (element) => !element.parentElement || !isPromptChunksTabBar(element.parentElement),
+        );
+      return headings[0] === parent;
+    }
+  }
+  return false;
 }
 
 export function isPromptEditorElement(element: Element): boolean {

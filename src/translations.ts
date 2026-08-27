@@ -8,6 +8,7 @@ const text = entries([
   ["Anime", "动漫"],
   ["Furry", "兽人"],
   ["Prompt", "提示词"],
+  ["Prompt Chunks", "提示词片段"],
   ["Transparent BG", "透明背景"],
   ["Undesired Content", "不希望出现的内容"],
   ["Character Prompts", "角色提示词"],
@@ -96,6 +97,15 @@ const historyText = entries([
   ["Deselect All", "取消全选"],
 ] as const);
 
+const promptChunksText = entries([
+  ["Prompt Chunks", "提示词片段"],
+  ["Settings", "设置"],
+  ["No custom prompt chunks yet. Click + to add one.", "尚无自定义提示词片段。点击 + 添加。"],
+  ["Delete All", "全部删除"],
+  ["Disable Tag Suggestions", "禁用标签建议"],
+  ["Highlight Emphasis", "高亮强调语法"],
+] as const);
+
 const promptPreviewText = entries([
   ["Added to the end of the prompt:", "添加到提示词末尾："],
   ["Added to the beginning of the UC:", "添加到负面内容开头："],
@@ -130,6 +140,10 @@ const attributes = entries([
   ["Use the seed of the displayed image", "使用当前显示图像的种子"],
   ["open History", "打开历史记录"],
   ["collapse History", "收起历史记录"],
+  ["Add Category", "添加分类"],
+  ["Add Prompt Chunk", "添加提示词片段"],
+  ["Disable Tag Suggestions", "禁用标签建议"],
+  ["Highlight Emphasis", "高亮强调语法"],
   ["choose image", "选择图像"],
   ["lock history scrolling", "锁定历史记录滚动"],
   ["unlock history scrolling", "解锁历史记录滚动"],
@@ -172,6 +186,7 @@ export const catalog: TranslationCatalog = {
   text,
   resultText,
   historyText,
+  promptChunksText,
   promptPreviewText,
   selectText,
   attributes,

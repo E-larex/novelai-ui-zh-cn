@@ -2,9 +2,11 @@ import {
   canTranslateAttribute,
   isAllowedSelectText,
   isInsideHistory,
+  isInsidePromptChunksPanel,
   isInsidePromptEditor,
   isInsideResultStage,
   isPromptPreviewText,
+  isPromptChunksChromeText,
   shouldSkipElement,
 } from "./protection";
 import { catalog as defaultCatalog } from "./translations";
@@ -118,7 +120,11 @@ export class UiTranslator {
     }
 
     let translated: string | undefined;
-    if (isPromptPreviewText(node)) {
+    if (isInsidePromptChunksPanel(node)) {
+      translated = isPromptChunksChromeText(node, source)
+        ? this.catalog.promptChunksText.get(source)
+        : undefined;
+    } else if (isPromptPreviewText(node)) {
       translated = this.catalog.promptPreviewText.get(source);
     } else if (isInsideResultStage(node)) {
       translated = this.catalog.resultText.get(source);

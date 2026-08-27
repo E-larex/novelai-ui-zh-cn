@@ -130,6 +130,56 @@ describe("UiTranslator", () => {
     expect(document.querySelector("#free-text")?.textContent).toBe("Normal");
   });
 
+  it("translates Prompt Chunks chrome while preserving custom chunk names", () => {
+    document.body.innerHTML = `
+      <section id="prompt-chunks-panel">
+        <div class="tabs"><div>Prompt Chunks</div><div>Settings</div></div>
+        <div class="content">
+          <div class="heading"><span>Prompt Chunks</span></div>
+          <button aria-label="Add Category"></button>
+          <button aria-label="Add Prompt Chunk"></button>
+          <p>No custom prompt chunks yet. Click + to add one.</p>
+          <div class="custom-chunk">Settings</div>
+          <div class="custom-chunk">Model</div>
+          <button>Delete All</button>
+        </div>
+      </section>
+    `;
+
+    translator.translateSubtree(document.body);
+
+    const tabs = document.querySelectorAll(".tabs div");
+    expect(tabs[0]?.textContent).toBe("提示词片段");
+    expect(tabs[1]?.textContent).toBe("设置");
+    expect(document.querySelector(".heading")?.textContent).toBe("提示词片段");
+    expect(document.querySelector(".content p")?.textContent).toBe(
+      "尚无自定义提示词片段。点击 + 添加。",
+    );
+    expect(document.querySelectorAll(".custom-chunk")[0]?.textContent).toBe("Settings");
+    expect(document.querySelectorAll(".custom-chunk")[1]?.textContent).toBe("Model");
+    expect(document.querySelector("button[aria-label]")?.getAttribute("aria-label")).toBe(
+      "添加分类",
+    );
+    expect(document.querySelector("button:last-child")?.textContent).toBe("全部删除");
+  });
+
+  it("translates Prompt Chunks settings without changing unknown panel content", () => {
+    document.body.innerHTML = `
+      <section>
+        <div class="tabs"><div>Prompt Chunks</div><div>Settings</div></div>
+        <div><label>Disable Tag Suggestions<input type="checkbox" aria-label="Disable Tag Suggestions"></label></div>
+        <div><label>Highlight Emphasis<input type="checkbox" aria-label="Highlight Emphasis"></label></div>
+        <p>Custom prompt chunk content</p>
+      </section>
+    `;
+
+    translator.translateSubtree(document.body);
+
+    expect(document.querySelectorAll("label")[0]?.textContent).toBe("禁用标签建议");
+    expect(document.querySelectorAll("label")[1]?.textContent).toBe("高亮强调语法");
+    expect(document.querySelector("p")?.textContent).toBe("Custom prompt chunk content");
+  });
+
   it("translates dynamically added tooltips and notifications once", async () => {
     translator.start();
     const tooltip = document.createElement("p");

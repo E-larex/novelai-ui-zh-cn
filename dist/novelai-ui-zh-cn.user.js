@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NovelAI 图像界面简体中文
 // @namespace    https://github.com/E-larex/novelai-ui-zh-cn
-// @version      0.1.0
+// @version      0.1.1
 // @description  将 NovelAI 图像生成界面的固定文案翻译为简体中文，绝不修改提示词。
 // @author       E-larex
 // @license      MIT
@@ -21,6 +21,20 @@
     "Added to the end of the prompt:",
     "Added to the beginning of the UC:"
   ]);
+  var PROMPT_CHUNKS_TAB_LABELS = {
+    chunks: /* @__PURE__ */ new Set(["Prompt Chunks", "提示词片段"]),
+    settings: /* @__PURE__ */ new Set(["Settings", "设置"])
+  };
+  var PROMPT_CHUNKS_CONTROL_LABELS = [
+    "Add Prompt Chunk",
+    "添加提示词片段",
+    "Disable Tag Suggestions",
+    "禁用标签建议",
+    "Highlight Emphasis",
+    "高亮强调语法",
+    "Delete All",
+    "全部删除"
+  ];
   var allowedComboboxLabels = /* @__PURE__ */ new Set([
     "Select the Model",
     "Quality Preset",
@@ -36,6 +50,69 @@
   var PROMPT_CLASS_PATTERN = /(?:^|[-_])(prompt-input-box|prompt-suggestion|prompt-autocomplete|tag-suggestion)(?:$|[-_])/i;
   function classNames(element) {
     return typeof element.className === "string" ? element.className.split(/\s+/) : [];
+  }
+  function isPromptChunksTabBar(element) {
+    if (element.children.length !== 2) {
+      return false;
+    }
+    const labels = Array.from(element.children).map((child) => child.textContent?.trim() ?? "");
+    return labels.some((label) => PROMPT_CHUNKS_TAB_LABELS.chunks.has(label)) && labels.some((label) => PROMPT_CHUNKS_TAB_LABELS.settings.has(label));
+  }
+  function looksLikePromptChunksPanel(element) {
+    const hasTabBar = Array.from(element.querySelectorAll("div")).some(isPromptChunksTabBar);
+    if (!hasTabBar) {
+      return false;
+    }
+    const hasControl = PROMPT_CHUNKS_CONTROL_LABELS.some(
+      (label) => element.querySelector(`[aria-label="${label}"]`) || Array.from(element.querySelectorAll("button")).some(
+        (button) => button.textContent?.trim() === label
+      )
+    );
+    return Boolean(hasControl);
+  }
+  function promptChunksPanel(node) {
+    let current = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+    while (current) {
+      if (looksLikePromptChunksPanel(current)) {
+        return current;
+      }
+      current = current.parentElement;
+    }
+    return null;
+  }
+  function isInsidePromptChunksPanel(node) {
+    return Boolean(promptChunksPanel(node));
+  }
+  function isPromptChunksChromeText(node, source) {
+    const parent = node.parentElement;
+    const panel = promptChunksPanel(node);
+    if (!parent) {
+      return false;
+    }
+    if (source === "No custom prompt chunks yet. Click + to add one.") {
+      return true;
+    }
+    if (source === "Delete All") {
+      return parent.closest("button") !== null;
+    }
+    if (source === "Disable Tag Suggestions" || source === "Highlight Emphasis") {
+      return Boolean(parent.closest("label")?.querySelector('input[type="checkbox"]'));
+    }
+    if (source === "Settings" || source === "Prompt Chunks") {
+      if (parent.parentElement && isPromptChunksTabBar(parent.parentElement)) {
+        return true;
+      }
+      if (source === "Prompt Chunks") {
+        if (!panel) {
+          return false;
+        }
+        const headings = Array.from(panel.querySelectorAll("*")).filter((element) => PROMPT_CHUNKS_TAB_LABELS.chunks.has(element.textContent?.trim() ?? "")).filter((element) => element.children.length === 0).filter(
+          (element) => !element.parentElement || !isPromptChunksTabBar(element.parentElement)
+        );
+        return headings[0] === parent;
+      }
+    }
+    return false;
   }
   function isPromptEditorElement(element) {
     if (element.matches(
@@ -121,6 +198,7 @@
     ["Anime", "动漫"],
     ["Furry", "兽人"],
     ["Prompt", "提示词"],
+    ["Prompt Chunks", "提示词片段"],
     ["Transparent BG", "透明背景"],
     ["Undesired Content", "不希望出现的内容"],
     ["Character Prompts", "角色提示词"],
@@ -206,6 +284,14 @@
     ["Select All", "全选"],
     ["Deselect All", "取消全选"]
   ]);
+  var promptChunksText = entries([
+    ["Prompt Chunks", "提示词片段"],
+    ["Settings", "设置"],
+    ["No custom prompt chunks yet. Click + to add one.", "尚无自定义提示词片段。点击 + 添加。"],
+    ["Delete All", "全部删除"],
+    ["Disable Tag Suggestions", "禁用标签建议"],
+    ["Highlight Emphasis", "高亮强调语法"]
+  ]);
   var promptPreviewText = entries([
     ["Added to the end of the prompt:", "添加到提示词末尾："],
     ["Added to the beginning of the UC:", "添加到负面内容开头："]
@@ -238,6 +324,10 @@
     ["Use the seed of the displayed image", "使用当前显示图像的种子"],
     ["open History", "打开历史记录"],
     ["collapse History", "收起历史记录"],
+    ["Add Category", "添加分类"],
+    ["Add Prompt Chunk", "添加提示词片段"],
+    ["Disable Tag Suggestions", "禁用标签建议"],
+    ["Highlight Emphasis", "高亮强调语法"],
     ["choose image", "选择图像"],
     ["lock history scrolling", "锁定历史记录滚动"],
     ["unlock history scrolling", "解锁历史记录滚动"],
@@ -277,6 +367,7 @@
     text,
     resultText,
     historyText,
+    promptChunksText,
     promptPreviewText,
     selectText,
     attributes,
@@ -376,7 +467,9 @@
         return;
       }
       let translated;
-      if (isPromptPreviewText(node)) {
+      if (isInsidePromptChunksPanel(node)) {
+        translated = isPromptChunksChromeText(node, source) ? this.catalog.promptChunksText.get(source) : void 0;
+      } else if (isPromptPreviewText(node)) {
         translated = this.catalog.promptPreviewText.get(source);
       } else if (isInsideResultStage(node)) {
         translated = this.catalog.resultText.get(source);
