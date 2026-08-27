@@ -68,6 +68,19 @@ const text = entries([
   ["Download", "下载"],
   ["Delete", "删除"],
   ["Copied!", "已复制！"],
+  ["Enhance", "增强"],
+  ["Generate Variations", "生成变体"],
+  ["Upscale", "放大"],
+  ["Use as Base Image", "用作基础图像"],
+  ["Edit Image", "编辑图像"],
+  ["Inpaint Image", "局部重绘图像"],
+  ["Send to Director Tools", "发送到导演工具"],
+  ["Pin Image", "固定图像"],
+  ["Remove Pinned Image", "取消固定图像"],
+  ["Copy to Clipboard", "复制到剪贴板"],
+  ["Copy to Seed", "复制到种子"],
+  ["Download Image", "下载图像"],
+  ["Remove [] / {}, add spaces after commas", "移除 [] / {}，并在逗号后添加空格"],
   ["Loading...", "正在加载……"],
   ["Something went wrong.", "出现了问题。"],
   ["Try again", "重试"],
@@ -94,13 +107,57 @@ const resultText = entries([
   ["Get Inspiration from our quick start gallery!", "从快速开始图库中获取灵感！"],
   ["Click an image to copy the prompt.", "点击图像即可复制提示词。"],
   ["Copied!", "已复制！"],
+  ["Enhance", "增强"],
+  ["Generate Variations", "生成变体"],
+  ["Upscale", "放大"],
+  ["Use as Base Image", "用作基础图像"],
+  ["Edit Image", "编辑图像"],
+  ["Inpaint Image", "局部重绘图像"],
+  ["Send to Director Tools", "发送到导演工具"],
+  ["Pin Image", "固定图像"],
+  ["Remove Pinned Image", "取消固定图像"],
+  ["Copy to Clipboard", "复制到剪贴板"],
+  ["Copy to Seed", "复制到种子"],
+  ["Download Image", "下载图像"],
 ] as const);
 
 const historyText = entries([
   ["History", "历史记录"],
+  ["Pins", "已固定"],
   ["No images yet", "还没有图像"],
   ["Select All", "全选"],
   ["Deselect All", "取消全选"],
+] as const);
+
+const imageImportText = entries([
+  ["What do you want to do with this image?", "你想如何使用这张图像？"],
+  ["Image2Image", "图生图"],
+  ["Vibe Transfer", "氛围迁移"],
+  ["Precise Reference", "精确参考"],
+  ["This image has metadata!", "此图像包含元数据！"],
+  ["Did you want to import that instead?", "是否要改为导入这些元数据？"],
+  ["Prompt", "提示词"],
+  ["Undesired Content", "不希望出现的内容"],
+  ["Characters", "角色"],
+  ["Append", "追加"],
+  ["Settings", "设置"],
+  ["Seed", "种子"],
+  ["Import Metadata", "导入元数据"],
+  ["Clean Imports", "清理导入内容"],
+] as const);
+
+const notificationText = entries([
+  ["Error", "错误"],
+  ["An error occurred.", "发生错误。"],
+  ["Something went wrong.", "出现了问题。"],
+  ["Image pinned.", "图像已固定。"],
+  ["Image pinned", "图像已固定"],
+  ["Pinned image removed.", "已取消固定图像。"],
+  ["Pinned image removed", "已取消固定图像"],
+  ["Image copied to clipboard.", "图像已复制到剪贴板。"],
+  ["Image copied to clipboard", "图像已复制到剪贴板"],
+  ["Image downloaded.", "图像已下载。"],
+  ["Image downloaded", "图像已下载"],
 ] as const);
 
 const characterGenderText = entries([
@@ -143,6 +200,7 @@ const selectText = entries([
 
 const attributes = entries([
   ["menu", "菜单"],
+  ["Notifications Alt+T", "通知 Alt+T"],
   ["Select the Model", "选择模型"],
   ["Quality Preset", "质量预设"],
   ["Undesired Content Preset", "负面内容预设"],
@@ -164,6 +222,13 @@ const attributes = entries([
   ["download all images", "下载全部图像"],
   ["delete image(s)", "删除图像"],
   ["deselect image", "取消选择图像"],
+  ["Prompt", "提示词"],
+  ["Undesired Content", "不希望出现的内容"],
+  ["Characters", "角色"],
+  ["Append", "追加"],
+  ["Settings", "设置"],
+  ["Seed", "种子"],
+  ["Clean Imports", "清理导入内容"],
   [
     "You are currently using Anime mode. The mode changes the tag suggestions and adds a dataset tag to the prompt. You can click the icon to switch.",
     "当前使用动漫模式。此模式会调整标签建议，并向提示词添加数据集标签。点击图标可切换模式。",
@@ -191,6 +256,25 @@ const dynamicText: readonly DynamicTranslation[] = [
   },
 ];
 
+const dynamicNotificationText: readonly DynamicTranslation[] = [
+  {
+    pattern: /^Failed to pin image(?:[.:]\s*(.*?))?\.?$/,
+    translate: (match) => `固定图像失败${match[1] ? `：${match[1]}` : "。"}`,
+  },
+  {
+    pattern: /^Failed to (?:remove pinned|unpin) image(?:[.:]\s*(.*?))?\.?$/,
+    translate: (match) => `取消固定图像失败${match[1] ? `：${match[1]}` : "。"}`,
+  },
+  {
+    pattern: /^Failed to copy image to clipboard(?:[.:]\s*(.*?))?\.?$/,
+    translate: (match) => `复制图像到剪贴板失败${match[1] ? `：${match[1]}` : "。"}`,
+  },
+  {
+    pattern: /^Failed to download image(?:[.:]\s*(.*?))?\.?$/,
+    translate: (match) => `下载图像失败${match[1] ? `：${match[1]}` : "。"}`,
+  },
+];
+
 const dynamicAttributes: readonly DynamicTranslation[] = [
   {
     pattern: /^Generate (\d+) Images? ?(\d+)? Anlas$/,
@@ -207,10 +291,13 @@ export const catalog: TranslationCatalog = {
   resultText,
   historyText,
   characterGenderText,
+  imageImportText,
+  notificationText,
   promptChunksText,
   promptPreviewText,
   selectText,
   attributes,
   dynamicText,
+  dynamicNotificationText,
   dynamicAttributes,
 };

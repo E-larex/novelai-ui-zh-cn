@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NovelAI 图像界面简体中文
 // @namespace    https://github.com/E-larex/novelai-ui-zh-cn
-// @version      0.1.2
+// @version      0.1.3
 // @description  将 NovelAI 图像生成界面的固定文案翻译为简体中文，绝不修改提示词。
 // @author       E-larex
 // @license      MIT
@@ -40,6 +40,42 @@
     male: /* @__PURE__ */ new Set(["Male", "男性"]),
     other: /* @__PURE__ */ new Set(["Other", "其他"])
   };
+  var IMAGE_IMPORT_HEADINGS = /* @__PURE__ */ new Set([
+    "What do you want to do with this image?",
+    "你想如何使用这张图像？"
+  ]);
+  var IMAGE_IMPORT_BUTTONS = /* @__PURE__ */ new Set([
+    "Image2Image",
+    "图生图",
+    "Vibe Transfer",
+    "氛围迁移",
+    "Precise Reference",
+    "精确参考",
+    "Import Metadata",
+    "导入元数据"
+  ]);
+  var IMAGE_IMPORT_CHECKBOXES = /* @__PURE__ */ new Set([
+    "Prompt",
+    "提示词",
+    "Undesired Content",
+    "不希望出现的内容",
+    "Characters",
+    "角色",
+    "Append",
+    "追加",
+    "Settings",
+    "设置",
+    "Seed",
+    "种子",
+    "Clean Imports",
+    "清理导入内容"
+  ]);
+  var IMAGE_IMPORT_COPY = /* @__PURE__ */ new Set([
+    "This image has metadata!",
+    "此图像包含元数据！",
+    "Did you want to import that instead?",
+    "是否要改为导入这些元数据？"
+  ]);
   var allowedComboboxLabels = /* @__PURE__ */ new Set([
     "Select the Model",
     "Quality Preset",
@@ -84,6 +120,48 @@
       current = current.parentElement;
     }
     return false;
+  }
+  function imageImportDialog(node) {
+    const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+    const dialog = element?.closest('[role="dialog"]');
+    if (!dialog) {
+      return null;
+    }
+    const hasHeading = Array.from(dialog.querySelectorAll("*")).some(
+      (child) => child.children.length === 0 && IMAGE_IMPORT_HEADINGS.has(child.textContent?.trim() ?? "")
+    );
+    const hasImportButton = Array.from(dialog.querySelectorAll("button")).some(
+      (button) => (/* @__PURE__ */ new Set(["Import Metadata", "导入元数据"])).has(button.textContent?.trim() ?? "")
+    );
+    return hasHeading && hasImportButton ? dialog : null;
+  }
+  function isInsideImageImportDialog(node) {
+    return Boolean(imageImportDialog(node));
+  }
+  function isImageImportChromeText(node, source) {
+    if (!imageImportDialog(node)) {
+      return false;
+    }
+    const parent = node.parentElement;
+    if (!parent) {
+      return false;
+    }
+    if (IMAGE_IMPORT_HEADINGS.has(source) || IMAGE_IMPORT_COPY.has(source)) {
+      return parent.children.length === 0;
+    }
+    if (IMAGE_IMPORT_BUTTONS.has(source)) {
+      return parent.closest("button") !== null;
+    }
+    if (IMAGE_IMPORT_CHECKBOXES.has(source)) {
+      return Boolean(parent.closest("label")?.querySelector('input[type="checkbox"]'));
+    }
+    return false;
+  }
+  function isInsideNotification(node) {
+    const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+    return Boolean(
+      element?.closest('.Toastify, [data-sonner-toaster], [data-sonner-toast], [role="status"]')
+    );
   }
   function looksLikePromptChunksPanel(element) {
     const hasTabBar = Array.from(element.querySelectorAll("div")).some(isPromptChunksTabBar);
@@ -285,6 +363,19 @@
     ["Download", "下载"],
     ["Delete", "删除"],
     ["Copied!", "已复制！"],
+    ["Enhance", "增强"],
+    ["Generate Variations", "生成变体"],
+    ["Upscale", "放大"],
+    ["Use as Base Image", "用作基础图像"],
+    ["Edit Image", "编辑图像"],
+    ["Inpaint Image", "局部重绘图像"],
+    ["Send to Director Tools", "发送到导演工具"],
+    ["Pin Image", "固定图像"],
+    ["Remove Pinned Image", "取消固定图像"],
+    ["Copy to Clipboard", "复制到剪贴板"],
+    ["Copy to Seed", "复制到种子"],
+    ["Download Image", "下载图像"],
+    ["Remove [] / {}, add spaces after commas", "移除 [] / {}，并在逗号后添加空格"],
     ["Loading...", "正在加载……"],
     ["Something went wrong.", "出现了问题。"],
     ["Try again", "重试"],
@@ -309,13 +400,55 @@
     ["Get Started", "快速开始"],
     ["Get Inspiration from our quick start gallery!", "从快速开始图库中获取灵感！"],
     ["Click an image to copy the prompt.", "点击图像即可复制提示词。"],
-    ["Copied!", "已复制！"]
+    ["Copied!", "已复制！"],
+    ["Enhance", "增强"],
+    ["Generate Variations", "生成变体"],
+    ["Upscale", "放大"],
+    ["Use as Base Image", "用作基础图像"],
+    ["Edit Image", "编辑图像"],
+    ["Inpaint Image", "局部重绘图像"],
+    ["Send to Director Tools", "发送到导演工具"],
+    ["Pin Image", "固定图像"],
+    ["Remove Pinned Image", "取消固定图像"],
+    ["Copy to Clipboard", "复制到剪贴板"],
+    ["Copy to Seed", "复制到种子"],
+    ["Download Image", "下载图像"]
   ]);
   var historyText = entries([
     ["History", "历史记录"],
+    ["Pins", "已固定"],
     ["No images yet", "还没有图像"],
     ["Select All", "全选"],
     ["Deselect All", "取消全选"]
+  ]);
+  var imageImportText = entries([
+    ["What do you want to do with this image?", "你想如何使用这张图像？"],
+    ["Image2Image", "图生图"],
+    ["Vibe Transfer", "氛围迁移"],
+    ["Precise Reference", "精确参考"],
+    ["This image has metadata!", "此图像包含元数据！"],
+    ["Did you want to import that instead?", "是否要改为导入这些元数据？"],
+    ["Prompt", "提示词"],
+    ["Undesired Content", "不希望出现的内容"],
+    ["Characters", "角色"],
+    ["Append", "追加"],
+    ["Settings", "设置"],
+    ["Seed", "种子"],
+    ["Import Metadata", "导入元数据"],
+    ["Clean Imports", "清理导入内容"]
+  ]);
+  var notificationText = entries([
+    ["Error", "错误"],
+    ["An error occurred.", "发生错误。"],
+    ["Something went wrong.", "出现了问题。"],
+    ["Image pinned.", "图像已固定。"],
+    ["Image pinned", "图像已固定"],
+    ["Pinned image removed.", "已取消固定图像。"],
+    ["Pinned image removed", "已取消固定图像"],
+    ["Image copied to clipboard.", "图像已复制到剪贴板。"],
+    ["Image copied to clipboard", "图像已复制到剪贴板"],
+    ["Image downloaded.", "图像已下载。"],
+    ["Image downloaded", "图像已下载"]
   ]);
   var characterGenderText = entries([
     ["Female", "女性"],
@@ -353,6 +486,7 @@
   ]);
   var attributes = entries([
     ["menu", "菜单"],
+    ["Notifications Alt+T", "通知 Alt+T"],
     ["Select the Model", "选择模型"],
     ["Quality Preset", "质量预设"],
     ["Undesired Content Preset", "负面内容预设"],
@@ -374,6 +508,13 @@
     ["download all images", "下载全部图像"],
     ["delete image(s)", "删除图像"],
     ["deselect image", "取消选择图像"],
+    ["Prompt", "提示词"],
+    ["Undesired Content", "不希望出现的内容"],
+    ["Characters", "角色"],
+    ["Append", "追加"],
+    ["Settings", "设置"],
+    ["Seed", "种子"],
+    ["Clean Imports", "清理导入内容"],
     [
       "You are currently using Anime mode. The mode changes the tag suggestions and adds a dataset tag to the prompt. You can click the icon to switch.",
       "当前使用动漫模式。此模式会调整标签建议，并向提示词添加数据集标签。点击图标可切换模式。"
@@ -397,6 +538,24 @@
       translate: (match) => `生成 ${match[1]} 张图像`
     }
   ];
+  var dynamicNotificationText = [
+    {
+      pattern: /^Failed to pin image(?:[.:]\s*(.*?))?\.?$/,
+      translate: (match) => `固定图像失败${match[1] ? `：${match[1]}` : "。"}`
+    },
+    {
+      pattern: /^Failed to (?:remove pinned|unpin) image(?:[.:]\s*(.*?))?\.?$/,
+      translate: (match) => `取消固定图像失败${match[1] ? `：${match[1]}` : "。"}`
+    },
+    {
+      pattern: /^Failed to copy image to clipboard(?:[.:]\s*(.*?))?\.?$/,
+      translate: (match) => `复制图像到剪贴板失败${match[1] ? `：${match[1]}` : "。"}`
+    },
+    {
+      pattern: /^Failed to download image(?:[.:]\s*(.*?))?\.?$/,
+      translate: (match) => `下载图像失败${match[1] ? `：${match[1]}` : "。"}`
+    }
+  ];
   var dynamicAttributes = [
     {
       pattern: /^Generate (\d+) Images? ?(\d+)? Anlas$/,
@@ -412,11 +571,14 @@
     resultText,
     historyText,
     characterGenderText,
+    imageImportText,
+    notificationText,
     promptChunksText,
     promptPreviewText,
     selectText,
     attributes,
     dynamicText,
+    dynamicNotificationText,
     dynamicAttributes
   };
 
@@ -518,6 +680,8 @@
       let translated;
       if (isCharacterGenderOption(node)) {
         translated = this.catalog.characterGenderText.get(source);
+      } else if (isInsideImageImportDialog(node)) {
+        translated = isImageImportChromeText(node, source) ? this.catalog.imageImportText.get(source) : void 0;
       } else if (isInsidePromptChunksPanel(node)) {
         translated = isPromptChunksChromeText(node, source) ? this.catalog.promptChunksText.get(source) : void 0;
       } else if (isPromptPreviewText(node)) {
@@ -526,6 +690,8 @@
         translated = this.catalog.resultText.get(source);
       } else if (isInsideHistory(node)) {
         translated = this.catalog.historyText.get(source);
+      } else if (isInsideNotification(node)) {
+        translated = this.catalog.notificationText.get(source) ?? translateDynamic(source, this.catalog.dynamicNotificationText);
       } else if (isAllowedSelectText(node)) {
         translated = this.catalog.selectText.get(source) ?? this.catalog.text.get(source);
       } else {

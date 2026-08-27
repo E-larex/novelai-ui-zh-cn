@@ -227,6 +227,129 @@ describe("UiTranslator", () => {
     );
   });
 
+  it("translates image import chrome while preserving imported metadata values", () => {
+    document.body.innerHTML = `
+      <div role="dialog" id="image-import">
+        <h2>What do you want to do with this image?</h2>
+        <button>Image2Image</button>
+        <button>Vibe Transfer</button>
+        <button>Precise Reference</button>
+        <p>This image has metadata!</p>
+        <p>Did you want to import that instead?</p>
+        <label><input type="checkbox" aria-label="Prompt">Prompt</label>
+        <label><input type="checkbox" aria-label="Undesired Content">Undesired Content</label>
+        <label><input type="checkbox" aria-label="Characters">Characters</label>
+        <label><input type="checkbox" aria-label="Append">Append</label>
+        <label><input type="checkbox" aria-label="Settings">Settings</label>
+        <label><input type="checkbox" aria-label="Seed">Seed</label>
+        <button>Import Metadata</button>
+        <label><input type="checkbox" aria-label="Clean Imports">Clean Imports</label>
+        <section class="imported-metadata">
+          <p>Settings</p>
+          <p>Import Metadata</p>
+          <img alt="Prompt" title="Settings" data-prompt="Characters">
+        </section>
+      </div>
+    `;
+
+    translator.translateSubtree(document.body);
+
+    const dialog = document.querySelector("#image-import");
+    expect(dialog?.querySelector("h2")?.textContent).toBe("你想如何使用这张图像？");
+    expect([...dialog!.querySelectorAll("button")].map((button) => button.textContent)).toEqual([
+      "图生图",
+      "氛围迁移",
+      "精确参考",
+      "导入元数据",
+    ]);
+    expect([...dialog!.querySelectorAll("label")].map((label) => label.textContent)).toEqual([
+      "提示词",
+      "不希望出现的内容",
+      "角色",
+      "追加",
+      "设置",
+      "种子",
+      "清理导入内容",
+    ]);
+    expect(
+      [...dialog!.querySelectorAll("input")].map((input) => input.getAttribute("aria-label")),
+    ).toEqual(["提示词", "不希望出现的内容", "角色", "追加", "设置", "种子", "清理导入内容"]);
+    expect(
+      dialog?.querySelector(".imported-metadata")?.textContent?.replace(/\s+/g, " ").trim(),
+    ).toBe("Settings Import Metadata");
+    const image = dialog?.querySelector("img");
+    expect(image?.getAttribute("alt")).toBe("Prompt");
+    expect(image?.getAttribute("title")).toBe("Settings");
+    expect(image?.getAttribute("data-prompt")).toBe("Characters");
+  });
+
+  it("translates result actions, pin history, and import cleanup help", () => {
+    document.body.innerHTML = `
+      <p>Enhance</p>
+      <p>Generate Variations</p>
+      <p>Upscale</p>
+      <p>Use as Base Image</p>
+      <p>Edit Image</p>
+      <p>Inpaint Image</p>
+      <p>Send to Director Tools</p>
+      <p>Pin Image</p>
+      <p>Remove Pinned Image</p>
+      <p>Copy to Clipboard</p>
+      <p>Copy to Seed</p>
+      <p>Download Image</p>
+      <p>Remove [] / {}, add spaces after commas</p>
+      <main class="image-gen-results-stage">
+        <span>Copy to Seed</span>
+        <span>Pin Image</span>
+        <span>Model</span>
+      </main>
+      <aside class="image-history-panel"><button>Pins</button></aside>
+    `;
+
+    translator.translateSubtree(document.body);
+
+    expect(document.body.textContent).toContain("增强");
+    expect(document.body.textContent).toContain("生成变体");
+    expect(document.body.textContent).toContain("放大");
+    expect(document.body.textContent).toContain("用作基础图像");
+    expect(document.body.textContent).toContain("编辑图像");
+    expect(document.body.textContent).toContain("局部重绘图像");
+    expect(document.body.textContent).toContain("发送到导演工具");
+    expect(document.body.textContent).toContain("固定图像");
+    expect(document.body.textContent).toContain("取消固定图像");
+    expect(document.body.textContent).toContain("复制到剪贴板");
+    expect(document.body.textContent).toContain("复制到种子");
+    expect(document.body.textContent).toContain("下载图像");
+    expect(document.body.textContent).toContain("移除 [] / {}，并在逗号后添加空格");
+    expect(
+      document.querySelector(".image-gen-results-stage")?.textContent?.replace(/\s+/g, ""),
+    ).toBe("复制到种子固定图像Model");
+    expect(document.querySelector(".image-history-panel button")?.textContent).toBe("已固定");
+  });
+
+  it("translates known image notifications and preserves unknown error details", async () => {
+    translator.start();
+    const notifications = document.createElement("section");
+    notifications.className = "Toastify";
+    notifications.innerHTML = `
+      <div class="Toastify__toast"><p>Error</p></div>
+      <div class="Toastify__toast"><p>Failed to pin image: storage unavailable</p></div>
+      <div class="Toastify__toast"><p>Failed to copy image to clipboard.</p></div>
+      <div class="Toastify__toast"><p>Failed to perform an unknown operation.</p></div>
+    `;
+    document.body.append(notifications);
+
+    await flushMutations();
+
+    const messages = [...notifications.querySelectorAll("p")].map((item) => item.textContent);
+    expect(messages).toEqual([
+      "错误",
+      "固定图像失败：storage unavailable",
+      "复制图像到剪贴板失败。",
+      "Failed to perform an unknown operation.",
+    ]);
+  });
+
   it("translates dynamically added tooltips and notifications once", async () => {
     translator.start();
     const tooltip = document.createElement("p");

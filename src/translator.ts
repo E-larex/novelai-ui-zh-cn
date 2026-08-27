@@ -3,10 +3,13 @@ import {
   isCharacterGenderOption,
   isAllowedSelectText,
   isInsideHistory,
+  isInsideImageImportDialog,
+  isInsideNotification,
   isInsidePromptChunksPanel,
   isInsidePromptEditor,
   isInsideResultStage,
   isPromptPreviewText,
+  isImageImportChromeText,
   isPromptChunksChromeText,
   shouldSkipElement,
 } from "./protection";
@@ -127,6 +130,10 @@ export class UiTranslator {
     let translated: string | undefined;
     if (isCharacterGenderOption(node)) {
       translated = this.catalog.characterGenderText.get(source);
+    } else if (isInsideImageImportDialog(node)) {
+      translated = isImageImportChromeText(node, source)
+        ? this.catalog.imageImportText.get(source)
+        : undefined;
     } else if (isInsidePromptChunksPanel(node)) {
       translated = isPromptChunksChromeText(node, source)
         ? this.catalog.promptChunksText.get(source)
@@ -137,6 +144,10 @@ export class UiTranslator {
       translated = this.catalog.resultText.get(source);
     } else if (isInsideHistory(node)) {
       translated = this.catalog.historyText.get(source);
+    } else if (isInsideNotification(node)) {
+      translated =
+        this.catalog.notificationText.get(source) ??
+        translateDynamic(source, this.catalog.dynamicNotificationText);
     } else if (isAllowedSelectText(node)) {
       translated = this.catalog.selectText.get(source) ?? this.catalog.text.get(source);
     } else {

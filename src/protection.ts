@@ -25,6 +25,46 @@ const CHARACTER_GENDER_LABELS = {
   other: new Set(["Other", "其他"]),
 };
 
+const IMAGE_IMPORT_HEADINGS = new Set([
+  "What do you want to do with this image?",
+  "你想如何使用这张图像？",
+]);
+
+const IMAGE_IMPORT_BUTTONS = new Set([
+  "Image2Image",
+  "图生图",
+  "Vibe Transfer",
+  "氛围迁移",
+  "Precise Reference",
+  "精确参考",
+  "Import Metadata",
+  "导入元数据",
+]);
+
+const IMAGE_IMPORT_CHECKBOXES = new Set([
+  "Prompt",
+  "提示词",
+  "Undesired Content",
+  "不希望出现的内容",
+  "Characters",
+  "角色",
+  "Append",
+  "追加",
+  "Settings",
+  "设置",
+  "Seed",
+  "种子",
+  "Clean Imports",
+  "清理导入内容",
+]);
+
+const IMAGE_IMPORT_COPY = new Set([
+  "This image has metadata!",
+  "此图像包含元数据！",
+  "Did you want to import that instead?",
+  "是否要改为导入这些元数据？",
+]);
+
 const allowedComboboxLabels = new Set([
   "Select the Model",
   "Quality Preset",
@@ -85,6 +125,55 @@ export function isCharacterGenderOption(node: Text): boolean {
     current = current.parentElement;
   }
   return false;
+}
+
+function imageImportDialog(node: Node): Element | null {
+  const element = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+  const dialog = element?.closest('[role="dialog"]');
+  if (!dialog) {
+    return null;
+  }
+
+  const hasHeading = Array.from(dialog.querySelectorAll("*")).some(
+    (child) =>
+      child.children.length === 0 && IMAGE_IMPORT_HEADINGS.has(child.textContent?.trim() ?? ""),
+  );
+  const hasImportButton = Array.from(dialog.querySelectorAll("button")).some((button) =>
+    new Set(["Import Metadata", "导入元数据"]).has(button.textContent?.trim() ?? ""),
+  );
+  return hasHeading && hasImportButton ? dialog : null;
+}
+
+export function isInsideImageImportDialog(node: Node): boolean {
+  return Boolean(imageImportDialog(node));
+}
+
+export function isImageImportChromeText(node: Text, source: string): boolean {
+  if (!imageImportDialog(node)) {
+    return false;
+  }
+
+  const parent = node.parentElement;
+  if (!parent) {
+    return false;
+  }
+  if (IMAGE_IMPORT_HEADINGS.has(source) || IMAGE_IMPORT_COPY.has(source)) {
+    return parent.children.length === 0;
+  }
+  if (IMAGE_IMPORT_BUTTONS.has(source)) {
+    return parent.closest("button") !== null;
+  }
+  if (IMAGE_IMPORT_CHECKBOXES.has(source)) {
+    return Boolean(parent.closest("label")?.querySelector('input[type="checkbox"]'));
+  }
+  return false;
+}
+
+export function isInsideNotification(node: Node): boolean {
+  const element = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+  return Boolean(
+    element?.closest('.Toastify, [data-sonner-toaster], [data-sonner-toast], [role="status"]'),
+  );
 }
 
 function looksLikePromptChunksPanel(element: Element): boolean {
